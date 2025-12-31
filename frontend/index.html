@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Intelligence Platform</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Sidebar (Right) -->
+    <div class="sidebar">
+        <div class="sidebar-item" data-cat="veg" title="Vegetation">🌱</div>
+        <div class="sidebar-item" data-cat="water" title="Water">💧</div>
+        <div class="sidebar-item" data-cat="climate" title="Climate">🌡️</div>
+        <div class="sidebar-item" data-cat="urban" title="Urban">🏙️</div>
+        <div class="sidebar-item" data-cat="terrain" title="Terrain">🧭</div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-item" id="dashboard-toggle" title="Agricultural Dashboard">📊</div>
+    </div>
+
+    <!-- Sub-menus (Slide-out from Right) -->
+    <div class="sub-menu-container">
+        <!-- Vegetation -->
+        <div class="sub-menu" id="sub-veg">
+            <h3>🌱 Vegetation</h3>
+            <button class="indicator-btn" data-ind="NDVI">NDVI (Health)</button>
+            <button class="indicator-btn" data-ind="EVI">EVI (Enhanced)</button>
+            <button class="indicator-btn" data-ind="SAVI">SAVI (Soil Adj)</button>
+            <button class="indicator-btn" data-ind="LAI">LAI (Leaf Area)</button>
+        </div>
+        <!-- Water -->
+        <div class="sub-menu" id="sub-water">
+            <h3>💧 Water & Hydrology</h3>
+            <button class="indicator-btn" data-ind="NDWI">NDWI (Water)</button>
+            <button class="indicator-btn" data-ind="MNDWI">MNDWI (Urban)</button>
+            <button class="indicator-btn" data-ind="SAR">Flood / SAR (S1)</button>
+        </div>
+        <!-- Climate -->
+        <div class="sub-menu" id="sub-climate">
+            <h3>🌡️ Climate</h3>
+            <button class="indicator-btn" data-ind="LST">Temp (MODIS)</button>
+            <button class="indicator-btn" data-ind="RAIN">Rainfall (CHIRPS)</button>
+        </div>
+        <!-- Urban -->
+        <div class="sub-menu" id="sub-urban">
+            <h3>🏙️ Urban</h3>
+            <button class="indicator-btn" data-ind="NDBI">Built-up Index</button>
+        </div>
+        <!-- Terrain -->
+        <div class="sub-menu" id="sub-terrain">
+            <h3>🧭 Terrain</h3>
+            <button class="indicator-btn" data-ind="ELEVATION">Elevation (m)</button>
+            <button class="indicator-btn" data-ind="SLOPE">Slope (deg)</button>
+        </div>
+    </div>
+
+    <!-- Bottom Date Panel -->
+    <div class="bottom-panel">
+        <div class="brand">🛰️ SatelliteAI</div>
+        <div class="date-controls">
+            <button id="prev-month" class="nav-btn">&lt;</button>
+            <div class="timeline-container">
+                <span id="date-display">December 2025</span>
+                <input type="range" id="time-slider" min="0" max="60" value="60">
+            </div>
+            <button id="next-month" class="nav-btn">&gt;</button>
+        </div>
+        <!-- Status removed from valid HTML flow in previous edits? Re-adding cleanly inside bottom-panel -->
+        <div id="status-msg" class="status-text">Ready.</div>
+    </div>
+
+    <!-- Agricultural Dashboard Overlay -->
+    <div id="agri-dashboard" class="dashboard-overlay hidden">
+        <div class="dashboard-header">
+            <h2>🌾 Agricultural Dashboard</h2>
+            <button id="close-dashboard" class="close-btn">✕</button>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- Input Section -->
+            <div class="dashboard-section">
+                <h3>📝 Configuration</h3>
+                <div class="input-row">
+                    <label>Crop Type:</label>
+                    <select id="crop-type">
+                        <option value="wheat">Wheat</option>
+                        <option value="corn">Corn</option>
+                        <option value="rice">Rice</option>
+                        <option value="soybean">Soybean</option>
+                    </select>
+                </div>
+                <div class="input-row">
+                    <label>Input Costs ($/ha):</label>
+                    <input type="number" id="input-costs" value="500" min="0" step="50">
+                </div>
+                <button id="calculate-dashboard" class="action-btn">Calculate Metrics</button>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="metrics-grid">
+                <!-- Productivity Card -->
+                <div class="metric-card">
+                    <h4>📈 Productivity Index</h4>
+                    <div class="metric-value" id="productivity-ndvi">--</div>
+                    <div class="metric-label">Mean NDVI</div>
+                    <div class="metric-detail" id="productivity-status">--</div>
+                    <div class="metric-detail" id="productivity-yield">Expected: -- tons/ha</div>
+                </div>
+
+                <!-- Financial Card -->
+                <div class="metric-card">
+                    <h4>💰 Financial Analysis</h4>
+                    <div class="metric-value" id="financial-profit">$--</div>
+                    <div class="metric-label">Net Profit</div>
+                    <div class="metric-detail" id="financial-roi">ROI: --%</div>
+                    <div class="metric-detail" id="financial-revenue">Revenue: $--</div>
+                </div>
+
+                <!-- Weather Risk Card -->
+                <div class="metric-card">
+                    <h4>🌦️ Weather Risk</h4>
+                    <div class="metric-value" id="weather-risk">--</div>
+                    <div class="metric-label">Overall Risk</div>
+                    <div class="metric-detail" id="weather-temp">Temp: --°C</div>
+                    <div class="metric-detail" id="weather-rain">Rain: -- mm</div>
+                </div>
+
+                <!-- Pest Risk Card -->
+                <div class="metric-card">
+                    <h4>🐛 Pest Risk</h4>
+                    <div class="metric-value" id="pest-risk">--</div>
+                    <div class="metric-label">Risk Level</div>
+                    <div class="metric-detail" id="pest-recommendation">--</div>
+                </div>
+
+                <!-- Soil Health Card -->
+                <div class="metric-card">
+                    <h4>🌱 Soil Health</h4>
+                    <div class="metric-value" id="soil-health">--</div>
+                    <div class="metric-label">Health Status</div>
+                    <div class="metric-detail" id="soil-nitrogen">N: --</div>
+                    <div class="metric-detail" id="soil-moisture">Moisture: --</div>
+                </div>
+
+                <!-- Irrigation Card -->
+                <div class="metric-card">
+                    <h4>💧 Irrigation</h4>
+                    <div class="metric-value" id="irrigation-urgency">--</div>
+                    <div class="metric-label">Urgency</div>
+                    <div class="metric-detail" id="irrigation-frequency">--</div>
+                    <div class="metric-detail" id="irrigation-amount">-- mm/session</div>
+                </div>
+            </div>
+
+            <!-- Fertilization Recommendations -->
+            <div class="dashboard-section">
+                <h3>🧪 Fertilization Recommendations</h3>
+                <div class="fertilization-grid">
+                    <div class="fert-item">
+                        <span class="fert-label">Nitrogen (N):</span>
+                        <span class="fert-value" id="fert-n">-- kg/ha</span>
+                    </div>
+                    <div class="fert-item">
+                        <span class="fert-label">Phosphorus (P):</span>
+                        <span class="fert-value" id="fert-p">-- kg/ha</span>
+                    </div>
+                    <div class="fert-item">
+                        <span class="fert-label">Potassium (K):</span>
+                        <span class="fert-value" id="fert-k">-- kg/ha</span>
+                    </div>
+                    <div class="fert-item">
+                        <span class="fert-label">Priority:</span>
+                        <span class="fert-value" id="fert-priority">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Area Info -->
+            <div class="dashboard-section">
+                <h3>📏 Plot Information</h3>
+                <p>Area: <span id="plot-area">--</span> hectares</p>
+                <p>Crop: <span id="plot-crop">--</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Leaflet Draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
